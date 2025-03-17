@@ -75,8 +75,10 @@ sysctl net.bridge.bridge-nf-call-iptables net.bridge.bridge-nf-call-ip6tables ne
 4) Install container runtime
 
 ```
-curl -LO https://github.com/containerd/containerd/releases/download/v1.7.14/containerd-1.7.14-linux-amd64.tar.gz
-sudo tar Cxzvf /usr/local containerd-1.7.14-linux-amd64.tar.gz
+export CONTAINERD_VERSION=$(curl -s https://api.github.com/repos/containerd/containerd/releases/latest | grep tag_name | cut -d '"' -f 4)
+curl -LO https://github.com/containerd/containerd/releases/download/${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION#v}-linux-amd64.tar.gz
+sudo tar Cxzvf /usr/local containerd-${CONTAINERD_VERSION#v}-linux-amd64.tar.gz
+
 curl -LO https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
 sudo mkdir -p /usr/local/lib/systemd/system/
 sudo mv containerd.service /usr/local/lib/systemd/system/
@@ -93,16 +95,18 @@ systemctl status containerd
 5) Install runc
 
 ```
-curl -LO https://github.com/opencontainers/runc/releases/download/v1.1.12/runc.amd64
+export RUNC_VERSION=$(curl -s https://api.github.com/repos/opencontainers/runc/releases/latest | grep tag_name | cut -d '"' -f 4)
+curl -LO https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.amd64
 sudo install -m 755 runc.amd64 /usr/local/sbin/runc
 ```
 
 6) install cni plugin
 
 ```
-curl -LO https://github.com/containernetworking/plugins/releases/download/v1.5.0/cni-plugins-linux-amd64-v1.5.0.tgz
+export CNI_PLUGINS_VERSION=$(curl -s https://api.github.com/repos/containernetworking/plugins/releases/latest | grep tag_name | cut -d '"' -f 4)
+curl -LO https://github.com/containernetworking/plugins/releases/download/${CNI_PLUGINS_VERSION}/cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
 sudo mkdir -p /opt/cni/bin
-sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.5.0.tgz
+sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-${CNI_PLUGINS_VERSION}.tgz
 ```
 
 7) Install kubeadm, kubelet and kubectl
@@ -111,11 +115,11 @@ sudo tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-v1.5.0.tgz
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl gpg
 
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -d '.' -f 1-2)/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$(curl -s https://api.github.com/repos/kubernetes/kubernetes/releases/latest | grep tag_name | cut -d '"' -f 4 | cut -d '.' -f 1-2)/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 sudo apt-get update
-sudo apt-get install -y kubelet=1.29.6-1.1 kubeadm=1.29.6-1.1 kubectl=1.29.6-1.1 --allow-downgrades --allow-change-held-packages
+sudo apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 
 kubeadm version
@@ -131,7 +135,7 @@ kubectl version --client
 9) initialize control plane
 
 ```
-sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=172.31.89.68 --node-name master
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --apiserver-advertise-address=192.168.71.129 --node-name Control-Plane
 ```
 >Note: Copy the copy to the notepad that was generated after the init command completion, we will use that later.
 
